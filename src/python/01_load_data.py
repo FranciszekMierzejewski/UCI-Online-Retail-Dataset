@@ -6,9 +6,10 @@ from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
 load_dotenv()
-df = pd.read_excel("data/Online Retail.xlsx")
+df = pd.read_excel("data/Online Retail.xlsx") 
 
-df.columns = [
+
+df.columns = [ # change col names to lowercase and to snake case
     "invoice_no",
     "stock_code",
     "description",
@@ -19,8 +20,13 @@ df.columns = [
     "country"
 ]
 
-df = df.fillna(None)
-data = list(df.to_records(index=False)) # convert df to numpy record array
+df = df.where(pd.notna(df), None) # keep value if not missing, else None
+# .fillna("")  is only suitable for text types, not date and num type
+
+
+buffer = io.StringIO()
+df.to_csv(buffer, index=False, header=False)
+buffer.seek(0) # rewind buffer to start
 
 conn = psycopg2.connect(
     dbname = "retail_db",
@@ -32,8 +38,10 @@ conn = psycopg2.connect(
 
 cur = conn.cursor()
 
-insert_query = """
-    INSERT INTO raw_transactions (
+# with insert, psycopg cannot handle numpy types. COPY instead of changing to text type or dict of key (numpy type) to value (python native type) conversion
+cur.copy_expert(
+    """
+    COPY raw_transactions ( 
         invoice_no,
         stock_code,
         description,
@@ -43,11 +51,11 @@ insert_query = """
         customer_id,
         country
     )
-    VALUES %s 
-"""
-# %s is placeholder for data rows when executing queries
+    FROM STDIN WITH (FORMAT CSV)
+    """, 
+    buffer
+)
 
-execute_values(cur, insert_query, data)
 conn.commit()
 cur.close()
 conn.close()
