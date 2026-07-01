@@ -1,4 +1,4 @@
-CREATE TABLE raw_transactions (
+CREATE TABLE IF NOT EXISTS raw_transactions (
     invoice_no TEXT,
     stock_code TEXT,
     description TEXT,

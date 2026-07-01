@@ -6,7 +6,7 @@ from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
 load_dotenv()
-df = pd.read_excel("data/Online Retail.xlsx") 
+df = pd.read_excel("data/Online Retail.xlsx", dtype=str) 
 
 
 df.columns = [ # change col names to lowercase and to snake case
@@ -20,7 +20,7 @@ df.columns = [ # change col names to lowercase and to snake case
     "country"
 ]
 
-df = df.where(pd.notna(df), None) # keep value if not missing, else None
+#df = df.where(pd.notna(df), None) # keep value if not missing, else None
 # .fillna("")  is only suitable for text types, not date and num type
 
 
@@ -37,8 +37,11 @@ conn = psycopg2.connect(
 )
 
 cur = conn.cursor()
+cur.execute("TRUNCATE TABLE raw_transactions;") # wipe table to not have dupe rows
 
 # with insert, psycopg cannot handle numpy types. COPY instead of changing to text type or dict of key (numpy type) to value (python native type) conversion
+# COPY reads empty csv field in text type column, stores as null
+
 cur.copy_expert(
     """
     COPY raw_transactions ( 
