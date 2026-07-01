@@ -1,6 +1,8 @@
 import pandas as pd
-import psycopg2
 import os
+import io
+import psycopg2
+from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,3 +31,25 @@ conn = psycopg2.connect(
 )
 
 cur = conn.cursor()
+
+insert_query = """
+    INSERT INTO raw_transactions (
+        invoice_no,
+        stock_code,
+        description,
+        quantity,
+        invoice_date,
+        unit_price,
+        customer_id,
+        country
+    )
+    VALUES %s 
+"""
+# %s is placeholder for data rows when executing queries
+
+execute_values(cur, insert_query, data)
+conn.commit()
+cur.close()
+conn.close()
+
+print("Successful insertion")
