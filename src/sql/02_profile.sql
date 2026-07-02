@@ -94,7 +94,7 @@ SELECT
     MAX(unit_price::NUMERIC) AS maximum_unit_price,
     MIN(unit_price::NUMERIC) AS minimum_unit_price
 FROM
-    non_cancelled_orders
+    non_cancelled_order
 WHERE
     customer_id IS NOT NULL
     AND unit_price::NUMERIC > 0
@@ -160,3 +160,18 @@ FROM
     ) nco
 ORDER BY
     start_of_month;
+
+-- Check if composite key produces unique rows
+SELECT 
+    invoice_no, 
+    stock_code, 
+    COUNT(*) 
+FROM 
+    non_cancelled_orders
+GROUP BY 
+    invoice_no, 
+    stock_code
+HAVING 
+    COUNT(*) > 1
+LIMIT 
+    10;
