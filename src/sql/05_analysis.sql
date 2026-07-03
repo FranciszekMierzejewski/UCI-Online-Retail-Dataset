@@ -64,7 +64,7 @@ rfm_total AS (
 ),
 
 
-rmf_categories AS (
+rfm_categories AS (
     SELECT
         customer_id,
         amount_spent,
@@ -89,12 +89,59 @@ SELECT
     ROUND(100 * COUNT(*)/SUM(COUNT(*)) OVER(), 2) AS percentage_of_total_customers, -- sum total count over all groups
     ROUND(100 * SUM(amount_spent::NUMERIC)/SUM(SUM(amount_spent::NUMERIC)) OVER(), 2) AS percentage_of_total_revenue
 FROM
-    rmf_categories
+    rfm_categories
 GROUP BY
     category
 ORDER BY
     total_revenue DESC;
 
--- TODO: Customer Retention
 
+-- Customer Retention
+WITH first_purchase AS (
+    SELECT 
+        customer_id,
+        DATE_TRUNC('month', MIN(invoice_date)) AS first_month
+    FROM
+        invoices
+    GROUP BY
+        customer_id
+),
+
+
+customer_active_months AS (
+    SELECT DISTINCT
+        customer_id,
+        DATE_TRUNC('month', invoice_date) AS active_month
+    FROM
+        invoices
+)
+
+
+customer_month_diff AS (
+    SELECT
+        fp.customer_id,
+        fp.first_month,
+        cam.customer_active_month,
+        (EXTRACT(YEAR FROM cam.activity_month) 
+        - EXTRACT(YEAR FROM fp.first_month)) * 12 -- convert to months
+        + (EXTRACT(MONTH FROM cam.activity_month) 
+        - EXTRACT(YEAR FROM fp.first_month)) AS months_since_first_purchase
+    FROM
+        first_purchase fp
+    JOIN customer_activity_month cam
+        ON cam.customer_id = fp.customer_id
+), 
+
+
+size_of_first_purchase_by_month AS (
+    SELECT
+        fp.first_month,
+        COUNT(DISTINCT customer_id) AS customer_count
+    FROM
+        customer_month_diff
+    WHERE
+        months_since_first_purchase = 0
+    GROUP BY
+        fp.first_month
+)
 

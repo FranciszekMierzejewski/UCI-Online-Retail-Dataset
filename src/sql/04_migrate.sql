@@ -70,13 +70,13 @@ WHERE
     AND nco.quantity > 0;
 
 
-SELECT 'customers'     AS table_name, COUNT(*) AS row_count FROM customers
+SELECT 'customers' AS table_name, COUNT(*) AS row_count FROM customers
 UNION ALL
-SELECT 'products',     COUNT(*) FROM products
+SELECT 'products', COUNT(*) FROM products
 UNION ALL
-SELECT 'invoices',     COUNT(*) FROM invoices
+SELECT 'invoices', COUNT(*) FROM invoices
 UNION ALL
-SELECT 'invoice_lines',COUNT(*) FROM invoice_lines;
+SELECT 'invoice_lines', COUNT(*) FROM invoice_lines;
 
 /*
  customers     |      4339
