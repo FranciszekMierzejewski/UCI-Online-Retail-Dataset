@@ -54,7 +54,7 @@ rfm_total AS (
     SELECT
         customer_id,
         amount_spent,
-        (0.33*r_score + 0.33*f_score + 0.33*m_score) as total
+        ((r_score + f_score + m_score)/3) as total
     FROM 
         rfm_scores
     /*
@@ -114,34 +114,63 @@ customer_active_months AS (
         DATE_TRUNC('month', invoice_date) AS active_month
     FROM
         invoices
-)
+),
 
 
 customer_month_diff AS (
     SELECT
         fp.customer_id,
         fp.first_month,
-        cam.customer_active_month,
-        (EXTRACT(YEAR FROM cam.activity_month) 
-        - EXTRACT(YEAR FROM fp.first_month)) * 12 -- convert to months
-        + (EXTRACT(MONTH FROM cam.activity_month) 
-        - EXTRACT(YEAR FROM fp.first_month)) AS months_since_first_purchase
+        cam.active_month,
+        (
+            (EXTRACT(YEAR FROM cam.active_month) - EXTRACT(YEAR FROM fp.first_month)) * 12 -- convert to months
+            + (EXTRACT(MONTH FROM cam.active_month) - EXTRACT(MONTH FROM fp.first_month))
+        ) AS months_since_first_purchase
     FROM
         first_purchase fp
-    JOIN customer_activity_month cam
+    JOIN customer_active_months cam
         ON cam.customer_id = fp.customer_id
 ), 
 
 
 size_of_first_purchase_by_month AS (
     SELECT
-        fp.first_month,
+        first_month,
         COUNT(DISTINCT customer_id) AS customer_count
     FROM
         customer_month_diff
     WHERE
         months_since_first_purchase = 0
     GROUP BY
-        fp.first_month
+        first_month
+),
+
+
+retention AS (
+    SELECT
+        cmd.first_month,
+        cmd.months_since_first_purchase,
+        COUNT(DISTINCT(cmd.customer_id)) AS returning_customers
+    FROM
+        customer_month_diff cmd
+    GROUP BY
+        cmd.first_month, cmd.months_since_first_purchase
 )
 
+
+SELECT
+    TO_CHAR(r.first_month, 'YYYY-MM') AS cohort,
+    sfpm.customer_count,
+    r.months_since_first_purchase AS month_number,
+    r.returning_customers,
+    ROUND(100 * r.returning_customers/sfpm.customer_count, 2) AS retention_rate_percentage
+FROM   
+    retention r
+JOIN
+    size_of_first_purchase_by_month sfpm
+    ON sfpm.first_month = r.first_month
+WHERE
+    r.months_since_first_purchase <= 12
+ORDER BY
+    r.first_month,
+    r.months_since_first_purchase;
