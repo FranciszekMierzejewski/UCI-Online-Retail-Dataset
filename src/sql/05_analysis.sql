@@ -1,3 +1,22 @@
+-- Top 10 products by revenue
+SELECT
+    p.stock_code,
+    p.description,
+    SUM(il.quantity) AS total_units_sold,
+    ROUND(SUM(il.quantity * il.unit_price)::NUMERIC, 2) AS total_revenue
+FROM 
+    products p
+JOIN 
+    invoice_lines il 
+    ON il.stock_code = p.stock_code
+GROUP BY 
+    p.stock_code, 
+    p.description
+ORDER BY 
+    total_revenue DESC
+LIMIT 10;
+
+
 -- RFM: Recency, Frequency, Monetary scoring
 WITH reference_date AS ( -- CTE for Day after last invoice, to compare recency
     SELECT 
@@ -54,7 +73,7 @@ rfm_total AS (
     SELECT
         customer_id,
         amount_spent,
-        ((r_score + f_score + m_score)/3) as total
+        ((r_score + f_score + m_score)/3.0) as total -- keep as float not int div
     FROM 
         rfm_scores
     /*
