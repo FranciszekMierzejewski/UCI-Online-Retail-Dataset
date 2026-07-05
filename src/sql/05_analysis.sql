@@ -158,6 +158,7 @@ retention AS (
 )
 
 
+-- Start at month, note how many customers had at least 1 invoice in the next up to 12 months
 SELECT
     TO_CHAR(r.first_month, 'YYYY-MM') AS cohort,
     sfpm.customer_count,
@@ -174,3 +175,28 @@ WHERE
 ORDER BY
     r.first_month,
     r.months_since_first_purchase;
+
+
+-- Revenue Trends
+WITH monthly_revenue AS (
+    SELECT 
+        DATE_TRUNC('month', i.invoice_date) AS month,
+        ROUND(SUM(il.quantity * il.unit_price)::NUMERIC, 2) AS revenue
+    FROM
+        invoices i
+    JOIN
+        invoice_lines il
+        ON i.invoice_no = il.invoice_no
+    GROUP BY
+        month
+)
+
+SELECT
+    TO_CHAR(month, 'YYYY-MM') AS month, -- to string, e.g. 2025-03
+    revenue AS monthly_revenue,
+    ROUND(SUM(revenue) OVER (ORDER BY month ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)::NUMERIC,2) AS running_total, -- cum sum
+    ROUND(100 * (revenue - LAG(revenue) OVER (ORDER BY month))/NULLIF(LAG(revenue) OVER (ORDER BY month), 0), 2) AS monthly_growth_percentage -- compare to previous row, null to avoid zero percentage error
+FROM
+    monthly_revenue
+ORDER BY 
+    month;
