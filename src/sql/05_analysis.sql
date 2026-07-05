@@ -17,6 +17,7 @@ ORDER BY
 LIMIT 10;
 
 
+CREATE OR REPLACE VIEW rfm_segmented AS 
 -- RFM: Recency, Frequency, Monetary scoring
 WITH reference_date AS ( -- CTE for Day after last invoice, to compare recency
     SELECT 
@@ -60,9 +61,9 @@ rfm_scores AS (
     SELECT  
         customer_id,
         amount_spent,
-        NTILE(5) OVER (ORDER BY recency DESC) AS r_score,
-        NTILE(5) OVER (ORDER BY invoice_count) AS f_score,
-        NTILE(5) OVER (ORDER BY amount_spent) AS m_score
+        NTILE(5) OVER (ORDER BY recency ASC) AS r_score,
+        NTILE(5) OVER (ORDER BY invoice_count ASC) AS f_score,
+        NTILE(5) OVER (ORDER BY amount_spent ASC) AS m_score
     FROM 
         rfm_recency
 ),
@@ -99,6 +100,14 @@ rfm_categories AS (
 )
 
 
+SELECT
+    customer_id,
+    amount_spent,
+    category
+FROM
+    rfm_categories;
+
+
 -- Summary of customers by RFM 
 SELECT
     category,
@@ -108,13 +117,14 @@ SELECT
     ROUND(100 * COUNT(*)/SUM(COUNT(*)) OVER(), 2) AS percentage_of_total_customers, -- sum total count over all groups
     ROUND(100 * SUM(amount_spent::NUMERIC)/SUM(SUM(amount_spent::NUMERIC)) OVER(), 2) AS percentage_of_total_revenue
 FROM
-    rfm_categories
+    rfm_segmented
 GROUP BY
     category
 ORDER BY
     total_revenue DESC;
 
 
+CREATE OR REPLACE VIEW cohort_retention AS 
 -- Customer Retention
 WITH first_purchase AS (
     SELECT 

@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS invoices (
 
 
 CREATE TABLE IF NOT EXISTS invoice_lines (
-    serial_line_no SERIAL PRIMARY KEY,
+    line_id SERIAL PRIMARY KEY,
     invoice_no VARCHAR(20) NOT NULL REFERENCES invoices(invoice_no),
     stock_code VARCHAR(20) NOT NULL REFERENCES products(stock_code),
     quantity INT NOT NULL,
