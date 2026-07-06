@@ -230,7 +230,6 @@ results/
 # Animation / figure outputs
 *.mp4
 *.gif
-*.png
 *.pdf
 
 # Sub folders
